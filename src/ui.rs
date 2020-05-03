@@ -108,7 +108,7 @@ impl<'conn> NotificationPortalUI<'conn> {
         title: &str,
         body: &str,
         callback: fn(CancellationResponse) -> (),
-    ) -> Result<NotificationHandle, Box<dyn std::error::Error>> {
+    ) -> Result<NotificationHandle, Box<dyn Error>> {
         let notification_id = Uuid::new_v4().to_hyphenated().to_string();
 
         let mut button1 = HashMap::new();

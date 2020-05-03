@@ -1,3 +1,5 @@
+use std::error;
+use std::fmt;
 use std::io;
 
 #[derive(Debug)]
@@ -13,13 +15,25 @@ pub enum Ctap1Version {
     U2fV2,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Ctap1Error {
     OtherError,
     BadRequest,
     ConfigurationUnsupported,
     DeviceIneligible,
     Timeout,
+}
+
+impl fmt::Display for Ctap1Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
+impl error::Error for Ctap1Error {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        None
+    }
 }
 
 #[derive(Debug)]
