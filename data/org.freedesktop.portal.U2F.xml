@@ -10,6 +10,7 @@
       <arg type="ay" name="challenge" direction="in"/>
       <arg type="aa{sv}" name="registeredKeys" direction="in"/>
       <arg type="u" name="timeoutSeconds" direction="in"/>
+      <arg type="a{sv}" name="options" direction="in"/> <!-- request_handle s -->
 
       <arg type="o" name="handle" direction="out"/>
     </method>
@@ -19,6 +20,7 @@
       <arg type="ay" name="challenge" direction="in"/>
       <arg type="aa{sv}" name="registeredKeys" direction="in"/>
       <arg type="u" name="timeoutSeconds" direction="in"/>
+      <arg type="a{sv}" name="options" direction="in"/> <!-- request_handle s -->
 
       <arg type="o" name="handle" direction="out"/>
     </method>

@@ -1,12 +1,16 @@
+mod service;
 mod ui;
 
+extern crate dbus;
 extern crate log;
 
-use backend::ctap1::protocol::{Ctap1RegisterRequest, Ctap1SignRequest};
+/*use backend::ctap1::protocol::{Ctap1RegisterRequest, Ctap1SignRequest};
 use backend::{AuthenticatorBackend, LocalAuthenticatorBackend};
-use dbus::blocking::Connection;
-use std::time::Duration;
 use ui::{NotificationPortalUI, UI};
+*/
+
+use dbus::blocking::LocalConnection;
+use std::time::Duration;
 
 use log::{info, warn};
 
@@ -16,11 +20,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
     // Connect to the session bus, and initialise the UI
-    let mut session_bus = Connection::new_session()?;
+    let mut session_bus = LocalConnection::new_session()?;
+    session_bus.request_name("org.freedesktop.portal.Credentials", false, true, false)?;
+
     info!(
         "Created connection to D-Bus session bus: {:?}",
         session_bus.unique_name()
     );
+
+    service::create_u2f_server(&mut session_bus);
+
+    // Serve clients forever.
+    loop {
+        session_bus.process(Duration::from_millis(1000))?;
+    }
+
+    /*
+
     let ui = NotificationPortalUI::new(&mut session_bus);
 
     // Initialise the CTAP1/USB authentication backend
@@ -57,4 +73,5 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     loop {
         session_bus.process(Duration::from_millis(1000))?;
     }
+    */
 }
