@@ -8,6 +8,7 @@ pub enum TransportError {
     InvalidFraming,
     NegotiationFailed,
     TransportUnavailable,
+    AlreadyInProgress,
     Timeout,
 }
 

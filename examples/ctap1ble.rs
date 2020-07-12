@@ -42,15 +42,6 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Selecting a device
     let bt_session = &Session::create_session(None)?;
-    let bt_adapter = Adapter::init(bt_session)?;
-    //bt_adapter.start_discovery()?;
-    let bt_device_ids = bt_adapter.get_device_list()?;
-    let bt_device = bt_device_ids
-        .iter()
-        .map(|device_id| Device::new(bt_session, device_id.to_string()))
-        .find(|device| {
-            device.get_alias().unwrap() == "U2F FT" || device.get_alias().unwrap() == "KVTAHN"
-        });
 
     if let None = bt_device {
         panic!(

@@ -1,4 +1,5 @@
 extern crate byteorder;
+extern crate mockall;
 
 use crate::transport::ble::{gatt, BleDevicePath, FidoRevision};
 
@@ -9,6 +10,8 @@ use blurz::bluetooth_gatt_service::BluetoothGATTService;
 use blurz::bluetooth_session::BluetoothSession;
 
 use byteorder::{BigEndian, ReadBytesExt};
+
+use mockall::automock;
 
 use crate::transport::ble::framing::{BleCommand, BleFrame, BleFrameParser, BleFrameParserResult};
 use crate::transport::error::TransportError;
@@ -29,22 +32,21 @@ pub const FIDO_CONTROL_POINT_LENGTH_UUID: &str = "f1d0fff3-deaa-ecee-b42f-c9ba7e
 pub const FIDO_REVISION_BITFIELD_UUID: &str = "f1d0fff4-deaa-ecee-b42f-c9ba7ed623bb";
 
 #[derive(Debug)]
-pub struct KnownDevice {
+pub struct KnownDevice<'a> {
+    session: &'a BluetoothSession,
     device: BleDevicePath,
 }
 
-impl KnownDevice {
-    pub fn new(device: &BleDevicePath) -> Self {
+impl<'a> KnownDevice<'a> {
+    pub fn new<'a>(session: &'a BluetoothSession, device: &BleDevicePath) -> KnownDevice<'a> {
         Self {
+            session,
             device: device.to_owned(),
         }
     }
 
-    pub fn connect<'a>(
-        &self,
-        session: &'a BluetoothSession,
-    ) -> Result<ConnectedDevice<'a>, TransportError> {
-        let device = BluetoothDevice::new(&session, self.device.clone());
+    pub fn connect<'a>(&self) -> Result<ConnectedDevice<'a>, TransportError> {
+        let device = BluetoothDevice::new(self.session, self.device.clone());
         if !device.is_connected().unwrap() {
             debug!(
                 "Connecting to BLE device: {:?} (timeout: {}ms)",
@@ -56,25 +58,24 @@ impl KnownDevice {
         }
 
         info!("Connected to device: {:?}", device);
-        let fido_service = device
-            .get_gatt_services()
-            .unwrap()
-            .iter()
-            .map(|service_path| BluetoothGATTService::new(&session, service_path.to_owned()))
-            .find(|service| service.get_uuid().unwrap() == FIDO_PROFILE_UUID)
-            .ok_or(TransportError::InvalidEndpoint)?;
-
-        debug!("Discovered FIDO service: {:?}", fido_service);
+        let fido_service = gatt::get_gatt_service(self.session, &device, FIDO_PROFILE_UUID)?;
         let fido_control_point =
-            gatt::get_gatt_characteristic(session, &fido_service, FIDO_CONTROL_POINT_UUID)?;
-        let fido_control_point_length =
-            gatt::get_gatt_characteristic(session, &fido_service, FIDO_CONTROL_POINT_LENGTH_UUID)?;
-        let fido_status = gatt::get_gatt_characteristic(&session, &fido_service, FIDO_STATUS_UUID)?;
-        let fido_service_revision_bitfield =
-            gatt::get_gatt_characteristic(session, &fido_service, FIDO_REVISION_BITFIELD_UUID)?;
+            gatt::get_gatt_characteristic(self.session, &fido_service, FIDO_CONTROL_POINT_UUID)?;
+        let fido_control_point_length = gatt::get_gatt_characteristic(
+            self.session,
+            &fido_service,
+            FIDO_CONTROL_POINT_LENGTH_UUID,
+        )?;
+        let fido_status =
+            gatt::get_gatt_characteristic(&self.session, &fido_service, FIDO_STATUS_UUID)?;
+        let fido_service_revision_bitfield = gatt::get_gatt_characteristic(
+            self.session,
+            &fido_service,
+            FIDO_REVISION_BITFIELD_UUID,
+        )?;
 
         Ok(ConnectedDevice {
-            session,
+            session: self.session,
             device: self.device.clone(),
             fido_control_point,
             fido_control_point_length,
@@ -94,6 +95,7 @@ pub struct ConnectedDevice<'a> {
     fido_service_revision_bitfield: BluetoothGATTCharacteristic<'a>,
 }
 
+#[automock]
 impl ConnectedDevice<'_> {
     pub fn supported_fido_revisions(&self) -> Result<HashSet<FidoRevision>, TransportError> {
         // https://fidoalliance.org/specs/fido-v2.0-ps-20190130/fido-client-to-authenticator-protocol-v2.0-ps-20190130.html#ble-protocol-overview

@@ -67,8 +67,16 @@ impl BLEManager {
         Some(manager)
     }
 
-    pub fn connect(&self, device: &BleDevicePath) -> Result<ConnectedDevice, TransportError> {
-        self.discovery_session.connect(device)
+    pub fn start_discovery(&self) -> Result<(), TransportError> {
+        self.discovery_session.start_discovery()
+    }
+
+    pub fn stop_discovery(&self) -> Result<(), TransportError> {
+        self.discovery_session.stop_discovery()
+    }
+
+    pub fn devices(&self) -> Result<Vec<KnownDevice>, TransportError> {
+        self.discovery_session.devices()
     }
 
     fn negotiate_protocol(
@@ -259,19 +267,24 @@ impl BLEManager {
     }
 }
 
-#[cfg(tests)]
+#[cfg(test)]
 pub mod tests {
-    use mockall::mock;
 
     use std::error::Error as StdError;
 
-    mock! {
-        BluetoothSession {}
-        trait BluetoothSession {
-            fn create_session(session: Option<&str>) -> Result<BluetoothSession, Box<StdError>>;
-        }
-    }
+    use super::discovery::MockDiscoverySession;
+    use super::BLEManager;
 
     #[test]
-    fn test_connection_failed() {}
+    fn test_ble_available() {
+        let ctx = MockDiscoverySession::new_context();
+        ctx.expect().returning(|| {
+            let discovery = MockDiscoverySession::default();
+            // TODO set mock behaviour here
+            discovery
+        });
+
+        let manager = BLEManager::new();
+        assert!(manager.is_some());
+    }
 }
