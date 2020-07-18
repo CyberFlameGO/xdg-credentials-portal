@@ -29,6 +29,7 @@ use crate::transport::error::Error::{Ctap, Transport};
 use crate::transport::error::{Error, TransportError};
 use framing::BleCommand;
 
+use crate::ops::downgrade::Downgrade;
 use framing::BleFrame;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -94,7 +95,7 @@ pub async fn webauthn_make_credential(
     device: &FidoDevice,
     op: MakeCredentialRequest,
 ) -> Result<MakeCredentialResponse, Error> {
-    let downgradable = true; // FIXME check!
+    let downgradable = op.is_downgradable();
     let (protocol, revision) = negotiate_protocol(device, true, downgradable)
         .await?
         .ok_or(Transport(TransportError::NegotiationFailed))?;
@@ -102,12 +103,10 @@ pub async fn webauthn_make_credential(
     match protocol {
         FidoProtocol::FIDO2 => ctap2_make_credential(device, op).await,
         FidoProtocol::U2F => {
-            let register_request: RegisterRequest =
-                op.try_into().or(Err(TransportError::NegotiationFailed))?;
-            ctap1_register(device, &revision, register_request)
+            let register_request: RegisterRequest = op.downgrade().unwrap();
+            Ok(ctap1_register(device, &revision, register_request)
                 .await?
-                .try_into()
-                .or(Err(Ctap(CtapError::UnsupportedOption)))
+                .into())
         }
     }
 }
@@ -116,7 +115,7 @@ pub async fn webauthn_get_assertion(
     device: &FidoDevice,
     op: GetAssertionRequest,
 ) -> Result<GetAssertionResponse, Error> {
-    let downgradable = true; // FIXME check!
+    let downgradable = op.is_downgradable();
     let (protocol, revision) = negotiate_protocol(device, true, downgradable)
         .await?
         .ok_or(Transport(TransportError::NegotiationFailed))?;
@@ -124,12 +123,8 @@ pub async fn webauthn_get_assertion(
     match protocol {
         FidoProtocol::FIDO2 => ctap2_get_assertion(device, op).await,
         FidoProtocol::U2F => {
-            let sign_request: SignRequest =
-                op.try_into().or(Err(TransportError::NegotiationFailed))?;
-            ctap1_sign(device, &revision, sign_request)
-                .await?
-                .try_into()
-                .or(Err(Ctap(CtapError::UnsupportedOption)))
+            let sign_request: SignRequest = op.downgrade().unwrap();
+            Ok(ctap1_sign(device, &revision, sign_request).await?.into())
         }
     }
 }
@@ -138,8 +133,7 @@ pub async fn u2f_register(
     device: &FidoDevice,
     op: RegisterRequest,
 ) -> Result<RegisterResponse, Error> {
-    let downgradable = true; // FIXME check!
-    let (protocol, revision) = negotiate_protocol(device, true, downgradable)
+    let (protocol, revision) = negotiate_protocol(device, false, true)
         .await?
         .ok_or(Transport(TransportError::NegotiationFailed))?;
 
@@ -150,8 +144,7 @@ pub async fn u2f_register(
 }
 
 pub async fn u2f_sign(device: &FidoDevice, op: SignRequest) -> Result<SignResponse, Error> {
-    let downgradable = true; // FIXME check!
-    let (protocol, revision) = negotiate_protocol(device, true, downgradable)
+    let (protocol, revision) = negotiate_protocol(device, false, true)
         .await?
         .ok_or(Transport(TransportError::NegotiationFailed))?;
 
@@ -239,10 +232,4 @@ async fn send_apdu_request(
 
     debug!("Received APDU response: {:?}", &response_apdu);
     Ok(response_apdu)
-}
-
-#[cfg(tests)]
-pub mod tests {
-    #[test]
-    fn test_connection_failed() {}
 }

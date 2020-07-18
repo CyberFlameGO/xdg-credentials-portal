@@ -1,8 +1,15 @@
-use crate::proto::ctap1::{Ctap1RegisterRequest, Ctap1SignRequest};
+use crate::proto::ctap1::{Ctap1RegisterRequest, Ctap1RegisteredKey, Ctap1SignRequest};
 use crate::proto::ctap1::{Ctap1RegisterResponse, Ctap1SignResponse};
-use crate::proto::ctap2::{Ctap2GetAssertionRequest, Ctap2MakeCredentialRequest};
+use crate::proto::ctap2::{
+    Ctap2COSEAlgorithmIdentifier, Ctap2GetAssertionRequest, Ctap2MakeCredentialRequest,
+};
 use crate::proto::ctap2::{Ctap2GetAssertionResponse, Ctap2MakeCredentialResponse};
 
+use crate::ops::u2f::{RegisterRequest, SignRequest};
+
+use super::downgrade::Downgrade;
+
+use log::debug;
 use std::convert::{TryFrom, TryInto};
 
 // FIDO2 operations can be mapped by default to their respective CTAP2 requests.
@@ -12,36 +19,55 @@ pub type MakeCredentialResponse = Ctap2MakeCredentialResponse;
 pub type GetAssertionRequest = Ctap2GetAssertionRequest;
 pub type GetAssertionResponse = Ctap2GetAssertionResponse;
 
-// FIDO2 operations can *sometimes* be downgrade to FIDO U2F operations.
-// https://fidoalliance.org/specs/fido-v2.0-ps-20190130/fido-client-to-authenticator-protocol-v2.0-ps-20190130.html#u2f-interoperability
+impl Downgrade<RegisterRequest> for MakeCredentialRequest {
+    fn is_downgradable(&self) -> bool {
+        self.algorithms
+            .iter()
+            .find(|&t| t.algorithm == Ctap2COSEAlgorithmIdentifier::ES256)
+            .is_some()
+            && !self.require_resident_key
+            && !self.require_user_verification
+    }
 
-impl TryInto<Ctap1RegisterRequest> for MakeCredentialRequest {
-    type Error = ();
-    fn try_into(self) -> Result<Ctap1RegisterRequest, Self::Error> {
-        // https://fidoalliance.org/specs/fido-v2.0-ps-20190130/fido-client-to-authenticator-protocol-v2.0-ps-20190130.html#u2f-authenticatorMakeCredential-interoperability
+    fn downgrade(&self) -> Option<RegisterRequest> {
+        if !self.is_downgradable() {
+            return None;
+        }
+        let app_id = &self.relying_party.id;
+        let challenge = &self.hash;
+        let registered_keys: Vec<Ctap1RegisteredKey> = self
+            .exclude
+            .iter()
+            .flat_map(|v| v)
+            .map(|credential| Ctap1RegisteredKey::new_u2f_v2(&credential.id))
+            .collect();
+        let downgraded = RegisterRequest::new_u2f_v2(app_id, challenge, registered_keys);
+        debug!("Downgraded request: {:?}", downgraded);
+        Some(downgraded)
+    }
+}
+
+impl Downgrade<SignRequest> for GetAssertionRequest {
+    fn is_downgradable(&self) -> bool {
+        false
+    }
+
+    fn downgrade(&self) -> Option<SignRequest> {
+        if !self.is_downgradable() {
+            return None;
+        }
         unimplemented!()
     }
 }
 
-impl TryFrom<Ctap1RegisterResponse> for MakeCredentialResponse {
-    type Error = ();
-    fn try_from(_: Ctap1RegisterResponse) -> Result<Self, Self::Error> {
+impl From<Ctap1RegisterResponse> for MakeCredentialResponse {
+    fn from(response: Ctap1RegisterResponse) -> Self {
         unimplemented!()
     }
 }
 
-impl TryInto<Ctap1SignRequest> for GetAssertionRequest {
-    type Error = ();
-    fn try_into(self) -> Result<Ctap1SignRequest, Self::Error> {
-        // https://fidoalliance.org/specs/fido-v2.0-ps-20190130/fido-client-to-authenticator-protocol-v2.0-ps-20190130.html#u2f-authenticatorGetAssertion-interoperability
-        unimplemented!()
-    }
-}
-
-impl TryFrom<Ctap1SignResponse> for GetAssertionResponse {
-    type Error = ();
-
-    fn try_from(_: Ctap1SignResponse) -> Result<Self, Self::Error> {
+impl From<Ctap1SignResponse> for GetAssertionResponse {
+    fn from(_: Ctap1SignResponse) -> Self {
         unimplemented!()
     }
 }

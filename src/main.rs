@@ -35,7 +35,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let dialog = ui.confirm_u2f_usb_register(APP_ID, TIMEOUT, |_| {
         warn!("User cancelled the request.");
     })?;
-    let register_request = RegisterRequest::new_u2f_v2(&APP_ID, &challenge, vec![], TIMEOUT);
+    let register_request = RegisterRequest::new_u2f_v2(&APP_ID, &challenge, vec![]);
     let response = u2f_register(register_request).await?;
     ui.cancel(dialog)?;
     println!("Response: {:?}", response);
@@ -43,7 +43,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Signature ceremony
     println!("Signature request sent (timeout: {} seconds).", TIMEOUT);
     let new_key = response.as_registered_key()?;
-    let sign_request = SignRequest::new(&APP_ID, &challenge, &new_key.key_handle, TIMEOUT, true);
+    let sign_request = SignRequest::new(&APP_ID, &challenge, &new_key.key_handle, true);
     let dialog = ui.confirm_u2f_usb_sign(APP_ID, TIMEOUT, |_| {
         warn!("User cancelled the request.");
     })?;

@@ -8,10 +8,9 @@ use backend::transport::ble::{list_devices, webauthn_get_assertion, webauthn_mak
 #[tokio::main]
 pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
-    //const APP_ID: &str = "https://foo.example.org";
     //const TIMEOUT: u32 = 5; // Seconds
-    //let challenge: &[u8] =
-    //    &base64_url::decode("1vQ9mxionq0ngCnjD-wTsv1zUSrGRtFqG2xP09SbZ70").unwrap();
+    let challenge: &[u8] =
+        &base64_url::decode("1vQ9mxionq0ngCnjD-wTsv1zUSrGRtFqG2xP09SbZ70").unwrap();
 
     // Devices enumeration
     let devices = list_devices().await?;
@@ -24,7 +23,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Make Credentials ceremony
     let make_credentials_request = MakeCredentialRequest {
         origin: "example.org".to_owned(),
-        hash: vec![0x01, 0x02],
+        hash: Vec::from(challenge),
         relying_party: Ctap2PublicKeyCredentialRpEntity {
             id: "example.org".to_owned(),
         },

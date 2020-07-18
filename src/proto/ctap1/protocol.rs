@@ -44,7 +44,6 @@ pub struct Ctap1RegisterRequest {
     pub app_id: String,
     pub challenge: Vec<u8>,
     pub registered_keys: Vec<Ctap1RegisteredKey>,
-    pub timeout_seconds: u32,
 }
 
 impl Ctap1RegisterRequest {
@@ -52,14 +51,12 @@ impl Ctap1RegisterRequest {
         app_id: &str,
         challenge: &[u8],
         registered_keys: Vec<Ctap1RegisteredKey>,
-        timeout_seconds: u32,
     ) -> Ctap1RegisterRequest {
         Ctap1RegisterRequest {
             version: Ctap1Version::U2fV2,
             app_id: String::from(app_id),
             challenge: Vec::from(challenge),
             registered_keys,
-            timeout_seconds,
         }
     }
 
@@ -136,7 +133,6 @@ pub struct Ctap1SignRequest {
     pub app_id: String,
     pub challenge: Vec<u8>,
     pub key_handle: Vec<u8>,
-    pub timeout_seconds: u32,
     pub require_user_presence: bool,
 }
 
@@ -145,14 +141,12 @@ impl Ctap1SignRequest {
         app_id: &str,
         challenge: &[u8],
         key_handle: &[u8],
-        timeout_seconds: u32,
         require_user_presence: bool,
     ) -> Ctap1SignRequest {
         Ctap1SignRequest {
             app_id: String::from(app_id),
             challenge: Vec::from(challenge),
             key_handle: Vec::from(key_handle),
-            timeout_seconds,
             require_user_presence,
         }
     }

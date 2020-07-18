@@ -38,7 +38,7 @@ pub struct Ctap2PublicKeyCredentialDescriptor {
 }
 
 #[repr(i32)]
-#[derive(Debug, FromPrimitive)]
+#[derive(Debug, FromPrimitive, PartialEq)]
 pub enum Ctap2COSEAlgorithmIdentifier {
     ES256 = -7,
 }
