@@ -12,7 +12,7 @@ use rand::{thread_rng, Rng};
 use tokio::time::sleep;
 use tracing::{debug, instrument, trace, warn, Level};
 
-#[cfg(feature = "virtual-hid-device")]
+#[cfg(feature = "hid-virtual-device")]
 use tokio::net::UdpSocket;
 
 use crate::proto::ctap1::apdu::{ApduRequest, ApduResponse};
@@ -41,7 +41,7 @@ const WINK_MIN_WAIT: Duration = Duration::from_secs(2);
 
 enum OpenHidDevice {
     HidApiDevice(Mutex<HidApiDevice>),
-    #[cfg(feature = "virtual-hid-device")]
+    #[cfg(feature = "hid-virtual-device")]
     VirtualDevice,
 }
 
@@ -62,7 +62,7 @@ impl<'d> HidChannel<'d> {
                     let hidapi_device = Self::hid_open(device)?;
                     OpenHidDevice::HidApiDevice(Mutex::new(hidapi_device))
                 }
-                #[cfg(feature = "virtual-hid-device")]
+                #[cfg(feature = "hid-virtual-device")]
                 HidBackendDevice::VirtualDevice(_) => OpenHidDevice::VirtualDevice,
             },
             init: InitResponse::default(),
@@ -133,7 +133,7 @@ impl<'d> HidChannel<'d> {
             HidBackendDevice::HidApiDevice(device) => Ok(device
                 .open_device(&hidapi)
                 .or(Err(Error::Transport(TransportError::ConnectionFailed)))?),
-            #[cfg(feature = "virtual-hid-device")]
+            #[cfg(feature = "hid-virtual-device")]
             HidBackendDevice::VirtualDevice(_) => unreachable!(),
         }
     }
@@ -155,7 +155,7 @@ impl<'d> HidChannel<'d> {
             HidBackendDevice::HidApiDevice(_) => {
                 Self::hid_transact_hidapi(device, msg, timeout).await
             }
-            #[cfg(feature = "virtual-hid-device")]
+            #[cfg(feature = "hid-virtual-device")]
             HidBackendDevice::VirtualDevice(_) => {
                 Self::hid_transact_virtual(device, msg, timeout).await
             }
@@ -193,7 +193,7 @@ impl<'d> HidChannel<'d> {
                 let guard = hidapi_device.lock().unwrap();
                 Self::hid_send_hidapi(guard.deref(), msg)
             }
-            #[cfg(feature = "virtual-hid-device")]
+            #[cfg(feature = "hid-virtual-device")]
             OpenHidDevice::VirtualDevice => Self::hid_send_virtual(msg).await,
         }
     }
@@ -213,7 +213,7 @@ impl<'d> HidChannel<'d> {
         Ok(())
     }
 
-    #[cfg(feature = "virtual-hid-device")]
+    #[cfg(feature = "hid-virtual-device")]
     async fn hid_send_virtual(msg: &HidMessage) -> Result<(), Error> {
         // https://github.com/solokeys/python-fido2/commit/4964d98ca6d0cfc24cd49926521282b8e92c598d
         let socket = UdpSocket::bind("127.0.0.1:7112")
@@ -254,7 +254,7 @@ impl<'d> HidChannel<'d> {
                     let guard = hidapi_device.lock().unwrap();
                     Self::hid_recv_hidapi(guard.deref(), timeout)
                 }
-                #[cfg(feature = "virtual-hid-device")]
+                #[cfg(feature = "hid-virtual-device")]
                 OpenHidDevice::VirtualDevice => Self::hid_recv_virtual(timeout).await,
             };
 
@@ -296,7 +296,7 @@ impl<'d> HidChannel<'d> {
         Ok(response)
     }
 
-    #[cfg(feature = "virtual-hid-device")]
+    #[cfg(feature = "hid-virtual-device")]
     async fn hid_recv_virtual(_timeout: Duration) -> Result<HidMessage, Error> {
         // https://github.com/solokeys/python-fido2/commit/4964d98ca6d0cfc24cd49926521282b8e92c598d
         let socket = UdpSocket::bind("127.0.0.1:7112")
@@ -337,7 +337,7 @@ impl<'d> HidChannel<'d> {
 impl Drop for HidChannel<'_> {
     #[instrument(level = Level::DEBUG, skip_all, fields(dev = %self.device))]
     fn drop(&mut self) {
-        #[cfg(feature = "virtual-hid-device")]
+        #[cfg(feature = "hid-virtual-device")]
         if let HidBackendDevice::VirtualDevice(_) = self.device.backend {
             return;
         }

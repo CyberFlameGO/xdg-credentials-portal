@@ -14,7 +14,7 @@ jobs:
       - name: Checkout submodules
         run: git submodule update --init --recursive
       - name: Install system dependencies
-        run: sudo apt-get install libudev-dev libdbus-1-dev libsodium-dev
+        run: sudo apt-get install libudev-dev libdbus-1-dev libsodium-dev libclang-dev cmake
       - name: Build
         run: cargo build
       - name: Run tests

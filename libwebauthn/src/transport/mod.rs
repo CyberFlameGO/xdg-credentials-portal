@@ -1,8 +1,15 @@
 pub(crate) mod error;
 
-pub mod ble;
 pub mod device;
+
+#[cfg(feature = "transport-ble")]
+pub mod ble;
+
+#[cfg(feature = "transport-hid")]
 pub mod hid;
+
+#[cfg(feature = "transport-nfc")]
+pub mod nfc;
 
 mod channel;
 mod transport;

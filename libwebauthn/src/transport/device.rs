@@ -51,6 +51,13 @@ impl SupportedProtocols {
             ..SupportedProtocols::default()
         }
     }
+
+    pub fn all() -> Self {
+        Self {
+            fido2: true,
+            u2f: true,
+        }
+    }
 }
 
 impl From<SupportedRevisions> for SupportedProtocols {
