@@ -15,7 +15,7 @@ transport-hid = []
 hid-device-tests = ["hid-virtual-device"]
 hid-virtual-device = ["solo"]
 
-transport-nfc = ["nfc1"]
+transport-nfc = []
 transport-ble = []
 
 
@@ -59,7 +59,7 @@ hkdf = "0.12"
 cosey = { path = "../cosey" }
 solo = { path = "../solo", optional = true }
 text_io = "0.1"
-nfc1 = { version = "0.4", optional = true }
+linux-nfc = { path = "../linux-nfc", optional = true }
 
 [dev-dependencies]
 tracing-subscriber = { version = "0.3.3", features = ["env-filter"] }

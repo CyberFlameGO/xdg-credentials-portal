@@ -4,3 +4,6 @@
 [submodule "cosey"]
 	path = cosey
 	url = https://github.com/AlfioEmanueleFresta/cosey.git
+[submodule "linux-nfc/libc"]
+	path = linux-nfc/libc
+	url = https://github.com/AlfioEmanueleFresta/libc.git

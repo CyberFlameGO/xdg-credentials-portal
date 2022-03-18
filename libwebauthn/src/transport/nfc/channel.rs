@@ -9,7 +9,7 @@ use std::fmt::Display;
 use super::NfcDevice;
 
 pub struct NfcChannel<'d> {
-    device: &'d NfcDevice<'d>,
+    device: &'d NfcDevice,
 }
 
 impl Display for NfcChannel<'_> {
@@ -19,7 +19,7 @@ impl Display for NfcChannel<'_> {
 }
 
 impl<'d> NfcChannel<'d> {
-    pub async fn new(device: &'d NfcDevice<'d>) -> Result<NfcChannel<'d>, Error> {
+    pub async fn new(device: &'d NfcDevice) -> Result<NfcChannel<'d>, Error> {
         Ok(Self { device })
     }
 }

@@ -1,0 +1,11 @@
+[package]
+name = "linux-nfc"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+libc = { version = "0.2" }
+tracing = "0.1"
+
+[patch.crates-io]
+libc = { git = 'https://github.com/AlfioEmanueleFresta/libc' }
